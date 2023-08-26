@@ -97,9 +97,10 @@ def get_sub(your_video):
 
 
 def token_and_write():
+    ## this function calls the OpenAI call and writing to text.
+
     global transcript
 
-    print("Doing token check")
     TOKEN_LEN = (len(ENCODING.encode(transcript)))
     if TOKEN_LEN > 16000:
         print('oh my god becky')
@@ -114,13 +115,13 @@ def token_and_write():
         # takes summaries, and then summarizes them
         summary_list = ""
         for i in listStuff:
-            print("\n\nsummarizing part\n\n")
+            print("summarizing part")
             summary_list += text_from_AI(i)
 
         write_to_file(text_from_AI(summary_list))
 
     else:
-        print("shit nah, no splittin here")
+        print("Small enough for single summary")
         write_to_file(text_from_AI(transcript))
 
     return
@@ -154,6 +155,20 @@ def text_from_AI(text):
     return str(res)
 
 
+def get_unique_filename(file_name):
+    # global file_name
+    base_name, ext = os.path.splitext(file_name)
+    counter = 0
+    while os.path.exists(OBS_ZK + file_name):
+        file_name = f"{base_name}{counter}{ext}"
+        counter += 1
+    
+    # Create the file with the unique name
+    with open(OBS_ZK + file_name, 'w') as f:
+        f.write('')  # Write an empty string, just to create the file
+    
+    return file_name
+
 
 def write_to_file(text_to_write):
     global video_title
@@ -165,9 +180,32 @@ def write_to_file(text_to_write):
 
     NOTE_NAME = video_title + ' (AI Summary).md'
 
-    with open(OBS_ZK + NOTE_NAME, 'a+') as f:  
-        f.write(text_to_write + f"\n\nSource: {video_url}")
-    print("done! Check Obsidian for the note named " + NOTE_NAME)
+    if os.path.exists(OBS_ZK + NOTE_NAME):
+        user_choice = input("The file already exists. Do you want to overwrite it? (yes/no/cancel): ").strip().lower()
+        
+        if user_choice == "yes":
+            with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
+                f.write(text_to_write + f"\n\nSource: {video_url}")
+            print("done! Check Obsidian for the note named " + NOTE_NAME)
+
+        elif user_choice == "no":
+            unique_name = get_unique_filename(NOTE_NAME)
+            with open(OBS_ZK + unique_name, 'w+') as f:
+                f.write(text_to_write + f"\n\nSource: {video_url}")
+            print("done! Check Obsidian for the note named " + unique_name)
+
+        elif user_choice == "cancel":
+            print("Operation cancelled.")
+
+        else:
+            print("Try again, cancel if you need")
+            
+
+    else:
+        with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
+            f.write(text_to_write + f"\n\nSource: {video_url}")
+
+    
 
 
 #------- Execution Time --------#
