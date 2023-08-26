@@ -13,6 +13,7 @@ import http.client
 
 openai.api_key_path= "/home/mat/Documents/ProgramExperiments/openAIapiKey"
 CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
+GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
 MODEL = "gpt-3.5-turbo-16k-0613"
 ENCODING = tiktoken.encoding_for_model(MODEL)
@@ -25,28 +26,47 @@ short_video = 'https://www.youtube.com/watch?v=jjb77v3LX_s'
 def get_sub(your_video):
     global video_title, transcript, video_id
 
+    # This is for vtt ID'ing and moving around basically
     query = urlparse(your_video).query
     video_id = parse_qs(query)["v"][0]
 
-    # Download subtitles using yt-dlp    # ^^ is not finding the vtt file for some reason...
-    # and just to make sure, I was able to run the webvtt.read() command just fine by entering in the file name directly.
 
-    ## I think the above two comments aren't needed anymore, not sure.
+    vtt_already_downloaded = glob.glob(os.path.join(CURR_DIR + "vtt_graveyard/", f"*{video_id}*"))
+
     ytdl_opts = {
-        'retries': 5,
-        'quiet': True,
-        'skip_download': True,
-        'writesubtitles': True,
-        'writeautomaticsub': True,
-        'get-title': True
-    }
+            'retries': 5,
+            'quiet': True,
+            'skip_download': True,
+            'writesubtitles': True,
+            'writeautomaticsub': True,
+            'get-title': True
+            }
 
-    print("downloading video....")
+    if vtt_already_downloaded:
+        print("yo found it")
+        sub_filename = vtt_already_downloaded[0]
+    
+    else:
+        print("new video")
+        print("downloading video....")
+
+        # dl vtt
+        ytdl = yt_dlp.YoutubeDL(ytdl_opts)
+        ytdl.download([your_video])
+
+        # putting the vtt in the graveyard
+        vtt_filename = glob.glob(f"*{video_id}*")
+
+        vtt_current = os.getcwd() + "/" + vtt_filename[0]
+        sub_filename = GRAVEYARD +  vtt_filename[0]
+        os.rename(vtt_current, sub_filename)
+
+
+    # This is just getting video title, to name the obsidian note later
     ytdl = yt_dlp.YoutubeDL(ytdl_opts)
-    ytdl.download([your_video])
     info = ytdl.extract_info(your_video, download=False, extra_info=None)
     video_title = info['title']
-    sub_filename = glob.glob(f"*{video_id}*")
+
 
 
 
@@ -55,12 +75,8 @@ def get_sub(your_video):
 
     lines = []
     transcript = ""
-    vtt = webvtt.read(sub_filename[0])
+    vtt = webvtt.read(sub_filename)
 
-    # putting the vtt in the graveyard
-    vtt_current = os.getcwd() + "/" + sub_filename[0]
-    vtt_destination = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/" + sub_filename[0]
-    os.rename(vtt_current, vtt_destination)
 
     for line in vtt:
         # Strip the newlines from the end of the text.
@@ -80,7 +96,7 @@ def get_sub(your_video):
     
 
 
-def token_stuff():
+def token_and_write():
     global transcript
 
     print("Doing token check")
@@ -118,9 +134,9 @@ def text_from_AI(text):
 
     # for chunk in chunks:
     prompt = """
-    Take the following text and write out a very lengthy summary of the technical aspects talked about, ((including side notes for more complicated concepts you see in double quotes like this)).
-    Finish with typing out the key points of the text. 
+    Take the following text and write out a very lengthy summary (700 words) of the technical aspects.
     Provide multiple headings that give quick overviews of what each section talks about, and also explains what the entire text is about.
+    Finish with typing out the key points of the text. 
     Format this all in Markdown please.
     \n- 
     """
@@ -166,18 +182,5 @@ if __name__ == "__main__":
 
 
     get_sub(video_url)
-    token_stuff()
-
-
-    ## (((I can uncomment these when I want the AI send again.)))
-    ## "a+" is indeed append boi
-
-
-
-
-    # NOTE_NAME = video_title + ' (AI Summary).md'
-    # with open(OBS_ZK + NOTE_NAME, 'w+') as f:
-    #     f.write(text_from_AI() + f"\n\nSource: {video_url}")
-
-    # sys.stdout.write(str(NOTE_NAME))
+    token_and_write()
 
