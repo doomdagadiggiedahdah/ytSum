@@ -76,10 +76,14 @@ def get_sub(your_video):
         transcript += " " + line
         previous = line
     print("got video")
+    return
+    
 
 
-    # beginning of token stuff, prob could go to another function.
+def token_stuff():
+    global transcript
 
+    print("Doing token check")
     TOKEN_LEN = (len(ENCODING.encode(transcript)))
     if TOKEN_LEN > 16000:
         print('oh my god becky')
@@ -104,22 +108,7 @@ def get_sub(your_video):
         write_to_file(text_from_AI(transcript))
 
     return
-    
 
-
-def write_to_file(text_to_write):
-    global video_title
-
-    # this is because Obsidian doesn't like certain chars, won't create file if includes.
-    replace_list = ["/", "\\",  ":", "[", "]", "#", "^", "|"]
-    for i in replace_list:
-        video_title = video_title.replace(i, "'")
-
-    NOTE_NAME = video_title + ' (AI Summary).md'
-
-    with open(OBS_ZK + NOTE_NAME, 'a+') as f:  
-        f.write(text_to_write + f"\n\nSource: {video_url}")
-    print("done! Check Obsidian for the note named " + NOTE_NAME)
 
 
 
@@ -149,6 +138,22 @@ def text_from_AI(text):
     return str(res)
 
 
+
+def write_to_file(text_to_write):
+    global video_title
+
+    # this is because Obsidian doesn't like certain chars, won't create file if includes.
+    replace_list = ["/", "\\",  ":", "[", "]", "#", "^", "|"]
+    for i in replace_list:
+        video_title = video_title.replace(i, "'")
+
+    NOTE_NAME = video_title + ' (AI Summary).md'
+
+    with open(OBS_ZK + NOTE_NAME, 'a+') as f:  
+        f.write(text_to_write + f"\n\nSource: {video_url}")
+    print("done! Check Obsidian for the note named " + NOTE_NAME)
+
+
 #------- Execution Time --------#
 
 if __name__ == "__main__":
@@ -161,6 +166,7 @@ if __name__ == "__main__":
 
 
     get_sub(video_url)
+    token_stuff()
 
 
     ## (((I can uncomment these when I want the AI send again.)))
