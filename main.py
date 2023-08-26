@@ -5,6 +5,7 @@ import sys
 import glob
 import openai
 import tiktoken
+import argparse
 import subprocess as s
 from urllib.parse import urlparse, parse_qs
 from collections import deque
@@ -69,7 +70,6 @@ def get_sub(your_video):
 
 
 
-
     ### formatting text to be human readable (and without timestamps)
     # credit: https://stackoverflow.com/questions/51784232/how-do-i-convert-the-webvtt-format-to-plain-text
 
@@ -127,8 +127,6 @@ def token_and_write():
     return
 
 
-
-
 ### AI Stuff inbound
 def text_from_AI(text):
     print("sending to AI")
@@ -171,7 +169,7 @@ def get_unique_filename(file_name):
 
 
 def write_to_file(text_to_write):
-    global video_title
+    global video_title, video_url
 
     # this is because Obsidian doesn't like certain chars, won't create file if includes.
     replace_list = ["/", "\\",  ":", "[", "]", "#", "^", "|"]
@@ -185,13 +183,13 @@ def write_to_file(text_to_write):
         
         if user_choice == "yes":
             with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
-                f.write(text_to_write + f"\n\nSource: {video_url}")
+                f.write(text_to_write + f"\n\nSource: {args.URL}")
             print("done! Check Obsidian for the note named " + NOTE_NAME)
 
         elif user_choice == "no":
             unique_name = get_unique_filename(NOTE_NAME)
             with open(OBS_ZK + unique_name, 'w+') as f:
-                f.write(text_to_write + f"\n\nSource: {video_url}")
+                f.write(text_to_write + f"\n\nSource: {args.URL}")
             print("done! Check Obsidian for the note named " + unique_name)
 
         elif user_choice == "cancel":
@@ -203,22 +201,40 @@ def write_to_file(text_to_write):
 
     else:
         with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
-            f.write(text_to_write + f"\n\nSource: {video_url}")
+            f.write(text_to_write + f"\n\nSource: {args.URL}")
+            print("done! Check Obsidian for the note named " + unique_name)
 
     
 
 
 #------- Execution Time --------#
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        arg1 = sys.argv[1]
-        video_url = sys.argv[1]
-        print(f"Working on your video: {video_url}")
+# if __name__ == "__main__":
+#     if len(sys.argv) > 1:
+#         arg1 = sys.argv[1]
+#         video_url = sys.argv[1]
+#         print(f"Working on your video: {video_url}")
+#     else:
+#         print("No argument passed.")
+
+
+#     get_sub(video_url)
+#     token_and_write()
+
+
+
+def main(URL=None):
+    if URL:
+        print(f"Working on your video: {URL}")
+        video_url = URL
+        get_sub(URL)
+        token_and_write()
     else:
         print("No argument passed.")
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process some video URLs.')
+    parser.add_argument('URL', type=str, nargs='?', help='The URL of the video to process')
 
-    get_sub(video_url)
-    token_and_write()
-
+    args = parser.parse_args()
+    main(args.URL)
