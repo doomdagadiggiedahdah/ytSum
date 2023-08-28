@@ -1,15 +1,12 @@
 import os
 import yt_dlp
 import webvtt
-import sys
 import glob
 import openai
 import tiktoken
 import argparse
 import subprocess as s
 from urllib.parse import urlparse, parse_qs
-from collections import deque
-import http.client
 
 
 openai.api_key_path= "/home/mat/Documents/ProgramExperiments/openAIapiKey"
@@ -133,7 +130,7 @@ def text_from_AI(text):
 
     # for chunk in chunks:
     prompt = """
-    Take the following text and write out a very lengthy summary (700 words) of the technical aspects.
+    Take the following text and write out a very lengthy summary (1500 words) of the main topics with a explanation of the topics.
     Provide multiple headings that give quick overviews of what each section talks about, and also explains what the entire text is about.
     Finish with typing out the key points of the text. 
     Format this all in Markdown please.
@@ -202,25 +199,12 @@ def write_to_file(text_to_write):
     else:
         with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
             f.write(text_to_write + f"\n\nSource: {args.URL}")
-            print("done! Check Obsidian for the note named " + unique_name)
+            print("done! Check Obsidian for the note named " + NOTE_NAME)
 
     
 
 
 #------- Execution Time --------#
-
-# if __name__ == "__main__":
-#     if len(sys.argv) > 1:
-#         arg1 = sys.argv[1]
-#         video_url = sys.argv[1]
-#         print(f"Working on your video: {video_url}")
-#     else:
-#         print("No argument passed.")
-
-
-#     get_sub(video_url)
-#     token_and_write()
-
 
 
 def main(URL=None):
