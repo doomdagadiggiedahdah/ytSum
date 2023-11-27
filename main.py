@@ -13,7 +13,6 @@ import http.client
 
 
 openai.api_key_path= "/home/mat/Documents/ProgramExperiments/openAIapiKey"
-CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
 GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
 MODEL = "gpt-3.5-turbo-16k-0613"
@@ -32,7 +31,7 @@ def get_sub(your_video):
     video_id = parse_qs(query)["v"][0]
 
 
-    vtt_already_downloaded = glob.glob(os.path.join(CURR_DIR + "vtt_graveyard/", f"*{video_id}*"))
+    vtt_already_downloaded = glob.glob(os.path.join(GRAVEYARD, f"*{video_id}*"))
 
     ytdl_opts = {
             'retries': 5,
