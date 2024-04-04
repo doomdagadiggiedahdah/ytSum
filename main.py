@@ -100,7 +100,6 @@ def token_and_write():
 
     TOKEN_LEN = (len(ENCODING.encode(transcript)))
     if TOKEN_LEN > 16000:
-        print('oh my god becky')
         
         listStuff = []
         mid = len(transcript) // 2
@@ -136,6 +135,16 @@ def text_from_AI(text):
     Format this all in Markdown please.
     \n- 
     """
+
+    if args.question:
+        print(f"Asking the model your custom question: {args.question}")
+        prompt = f"""
+        Take the following text and apply this instruction to it: {args.question}. 
+        Aim to structure the document by: answering the question in a concise and comprehensive manner, expanding on key points 
+        with relevant info from the text, suggest possible areas to look into next, and wrap up by summarizing the main points.
+        Please format in Markdown with relevant headings, feel free to use emojis :)
+        Thank you!
+        """
     
     # try:
     send = openai.ChatCompletion.create(
@@ -207,7 +216,7 @@ def write_to_file(text_to_write):
 #------- Execution Time --------#
 
 
-def main(URL=None):
+def main(URL=None, question=None):
     if URL:
         print(f"Working on your video: {URL}")
         video_url = URL
@@ -219,6 +228,7 @@ def main(URL=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some video URLs.')
     parser.add_argument('URL', type=str, nargs='?', help='The URL of the video to process')
+    parser.add_argument('--question', type=str, default=None,  help='The URL of the video to process')
 
     args = parser.parse_args()
-    main(args.URL)
+    main(args.URL, args.question)
