@@ -1,18 +1,16 @@
 import os
 import yt_dlp
 import webvtt
-import sys
 import glob
 import openai
 import tiktoken
 import argparse
 import subprocess as s
 from urllib.parse import urlparse, parse_qs
-from collections import deque
-import http.client
 
 
 openai.api_key_path= "/home/mat/Documents/ProgramExperiments/openAIapiKey"
+CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
 GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
 MODEL = "gpt-3.5-turbo-16k-0613"
@@ -31,7 +29,7 @@ def get_sub(your_video):
     video_id = parse_qs(query)["v"][0]
 
 
-    vtt_already_downloaded = glob.glob(os.path.join(GRAVEYARD, f"*{video_id}*"))
+    vtt_already_downloaded = glob.glob(os.path.join(CURR_DIR + "vtt_graveyard/", f"*{video_id}*"))
 
     ytdl_opts = {
             'retries': 5,
@@ -102,7 +100,6 @@ def token_and_write():
 
     TOKEN_LEN = (len(ENCODING.encode(transcript)))
     if TOKEN_LEN > 16000:
-        print('oh my god becky')
         
         listStuff = []
         mid = len(transcript) // 2
@@ -132,12 +129,22 @@ def text_from_AI(text):
 
     # for chunk in chunks:
     prompt = """
-    Take the following text and write out a very lengthy summary (700 words) of the technical aspects.
+    Take the following text and write out a very lengthy summary (1500 words) of the main topics with a explanation of the topics.
     Provide multiple headings that give quick overviews of what each section talks about, and also explains what the entire text is about.
     Finish with typing out the key points of the text. 
     Format this all in Markdown please.
     \n- 
     """
+
+    if args.question:
+        print(f"Asking the model your custom question: {args.question}")
+        prompt = f"""
+        Take the following text and apply this instruction to it: {args.question}. 
+        Aim to structure the document by: answering the question in a concise and comprehensive manner, expanding on key points 
+        with relevant info from the text, suggest possible areas to look into next, and wrap up by summarizing the main points.
+        Please format in Markdown with relevant headings, feel free to use emojis :)
+        Thank you!
+        """
     
     # try:
     send = openai.ChatCompletion.create(
@@ -201,28 +208,14 @@ def write_to_file(text_to_write):
     else:
         with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
             f.write(text_to_write + f"\n\nSource: {args.URL}")
-            print("done! Check Obsidian for the note named " + unique_name)
+            print("done! Check Obsidian for the note named " + NOTE_NAME)
 
     
 
 
 #------- Execution Time --------#
 
-# if __name__ == "__main__":
-#     if len(sys.argv) > 1:
-#         arg1 = sys.argv[1]
-#         video_url = sys.argv[1]
-#         print(f"Working on your video: {video_url}")
-#     else:
-#         print("No argument passed.")
-
-
-#     get_sub(video_url)
-#     token_and_write()
-
-
-
-def main(URL=None):
+def main(URL=None, question=None):
     if URL:
         print(f"Working on your video: {URL}")
         video_url = URL
@@ -234,6 +227,7 @@ def main(URL=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some video URLs.')
     parser.add_argument('URL', type=str, nargs='?', help='The URL of the video to process')
+    parser.add_argument('--question', type=str, default=None,  help='The URL of the video to process')
 
     args = parser.parse_args()
-    main(args.URL)
+    main(args.URL, args.question)
