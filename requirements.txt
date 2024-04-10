@@ -61,4 +61,4 @@ webvtt-py==0.4.6
 yarg==0.1.9
 yarl==1.9.2
 youtube-dl==2021.12.17
-yt-dlp==2024.3.10
+yt-dlp==2024.4.9
