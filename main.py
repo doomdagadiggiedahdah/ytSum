@@ -133,6 +133,7 @@ def text_from_AI(text):
     Provide multiple headings that give quick overviews of what each section talks about, and also explains what the entire text is about.
     Finish with typing out the key points of the text. 
     Format this all in Markdown please.
+    Finally, write this in the style of Paul Graham.
     \n- 
     """
 
@@ -143,6 +144,7 @@ def text_from_AI(text):
         Aim to structure the document by: answering the question in a concise and comprehensive manner, expanding on key points 
         with relevant info from the text, suggest possible areas to look into next, and wrap up by summarizing the main points.
         Please format in Markdown with relevant headings, feel free to use emojis :)
+        Finally, write this in the style of Paul Graham.
         Thank you!
         """
     
