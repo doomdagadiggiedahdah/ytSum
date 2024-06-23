@@ -50,7 +50,7 @@ sympy==1.12
 tiktoken==0.4.0
 tokenizers==0.15.2
 torch==2.0.1
-tqdm==4.65.0
+tqdm==4.66.3
 transformers==4.39.3
 triton==2.0.0
 ttkbootstrap==1.10.1
