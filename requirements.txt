@@ -43,7 +43,7 @@ pipreqs==0.4.13
 pycryptodomex==3.20.0
 PyYAML==6.0.1
 regex==2023.5.5
-requests==2.31.0
+requests==2.32.2
 safetensors==0.4.2
 summarizer==0.0.7
 sympy==1.12
