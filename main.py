@@ -9,11 +9,13 @@ import subprocess as s
 from urllib.parse import urlparse, parse_qs
 
 
-openai.api_key_path= "/home/mat/Documents/ProgramExperiments/openAIapiKey"
+#openai.api_key_path= "/home/mat/Documents/ProgramExperiments/openAIapiKey"
 CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
 GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
-MODEL = "gpt-3.5-turbo-16k-0613"
+#MODEL = "gpt-3.5-turbo-16k-0613"
+#MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-4o-mini"
 ENCODING = tiktoken.encoding_for_model(MODEL)
 
 
