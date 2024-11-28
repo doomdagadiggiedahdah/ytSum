@@ -49,7 +49,7 @@ summarizer==0.0.7
 sympy==1.12
 tiktoken==0.4.0
 tokenizers==0.15.2
-torch==2.0.1
+torch==2.2.0
 tqdm==4.66.3
 transformers==4.39.3
 triton==2.0.0
