@@ -133,6 +133,7 @@ def text_from_AI(text):
     Provide multiple headings that give quick overviews of what each section talks about, and also explains what the entire text is about.
     Finish with typing out the key points of the text. 
     Format this all in Markdown please.
+    Start this summary with the main takeaway, following these instructions: "What is the single most important thing I should take away from this information? If I were to discard everything else, what should I make sure to take away?"
     Finally, write this in the style of Paul Graham.
     \n- 
     """
