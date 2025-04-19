@@ -2,13 +2,14 @@ import os
 import yt_dlp
 import webvtt
 import glob
-import openai
+from openai import OpenAI
 import tiktoken
 import argparse
 import subprocess as s
 from urllib.parse import urlparse, parse_qs
 
 
+client = OpenAI()
 CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
 GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
@@ -43,7 +44,7 @@ def get_sub(your_video):
     if vtt_already_downloaded:
         print("yo found it")
         sub_filename = vtt_already_downloaded[0]
-    
+
     else:
         print("new video")
         print("downloading video....")
@@ -90,7 +91,7 @@ def get_sub(your_video):
         previous = line
     print("got video")
     return
-    
+
 
 
 def token_and_write():
@@ -100,7 +101,7 @@ def token_and_write():
 
     TOKEN_LEN = (len(ENCODING.encode(transcript)))
     if TOKEN_LEN > 16000:
-        
+
         listStuff = []
         mid = len(transcript) // 2
         first_half = transcript[:mid]
@@ -148,16 +149,15 @@ def text_from_AI(text):
         Finally, write this in the style of Paul Graham.
         Thank you!
         """
-    
-    # try:
-    send = openai.ChatCompletion.create(
-        model = MODEL,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": text}
-    ])
 
-    res = send["choices"][0]["message"]["content"]
+    # try:
+    send = client.chat.completions.create(model = MODEL,
+    messages=[
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": text}
+        ])
+
+    res = send.choices[0].message.content
 
     return str(res)
 
@@ -169,11 +169,11 @@ def get_unique_filename(file_name):
     while os.path.exists(OBS_ZK + file_name):
         file_name = f"{base_name}{counter}{ext}"
         counter += 1
-    
+
     # Create the file with the unique name
     with open(OBS_ZK + file_name, 'w') as f:
         f.write('')  # Write an empty string, just to create the file
-    
+
     return file_name
 
 
@@ -189,7 +189,7 @@ def write_to_file(text_to_write):
 
     if os.path.exists(OBS_ZK + NOTE_NAME):
         user_choice = input("The file already exists. Do you want to overwrite it? (yes/no/cancel): ").strip().lower()
-        
+
         if user_choice == "yes":
             with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
                 f.write(text_to_write + f"\n\nSource: {args.URL}")
@@ -206,14 +206,14 @@ def write_to_file(text_to_write):
 
         else:
             print("Try again, cancel if you need")
-            
+
 
     else:
         with open(OBS_ZK + NOTE_NAME, 'w+') as f:  
             f.write(text_to_write + f"\n\nSource: {args.URL}")
             print("done! Check Obsidian for the note named " + NOTE_NAME)
 
-    
+
 
 
 #------- Execution Time --------#
