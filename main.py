@@ -13,8 +13,8 @@ client = OpenAI()
 CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
 GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
-MODEL = "gpt-4o-mini"
-ENCODING = tiktoken.encoding_for_model(MODEL)
+MODEL = "gpt-4.1-nano"
+#ENCODING = tiktoken.encoding_for_model(MODEL)
 
 
 # this is just here for easy testing.
@@ -100,7 +100,7 @@ def token_and_write():
     global transcript
 
     TOKEN_LEN = (len(ENCODING.encode(transcript)))
-    if TOKEN_LEN > 16000:
+    if TOKEN_LEN > 1000000:
 
         listStuff = []
         mid = len(transcript) // 2
@@ -223,7 +223,8 @@ def main(URL=None, question=None):
         print(f"Working on your video: {URL}")
         video_url = URL
         get_sub(URL)
-        token_and_write()
+        #token_and_write()
+        write_to_file(text_from_AI(transcript))
     else:
         print("No argument passed.")
 
