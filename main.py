@@ -14,7 +14,7 @@ CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
 GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
 MODEL = "gpt-4.1-nano"
-#ENCODING = tiktoken.encoding_for_model(MODEL)
+#ENCODING = tiktoken.encoding_for_model("gpt-4") # this is out for now
 
 
 # this is just here for easy testing.
@@ -36,8 +36,11 @@ def get_sub(your_video):
             'quiet': True,
             'no_warnings': True,
             'skip_download': True,
-            'writesubtitles': True,
+            'subtitlesformat': 'vtt',
+            'writesubtitles': False,
             'writeautomaticsub': True,
+            'subtitleslangs': ['en'],
+            'ignoreerrors': False,
             'get-title': True
             }
 
@@ -50,11 +53,31 @@ def get_sub(your_video):
         print("downloading video....")
 
         # dl vtt
-        ytdl = yt_dlp.YoutubeDL(ytdl_opts)
-        ytdl.download([your_video])
+        try:
+            ytdl = yt_dlp.YoutubeDL(ytdl_opts)
+            ytdl.download([your_video])
+        except Exception as e:
+            print(f"Error downloading subtitles: {e}")
+            print("Trying alternative approach...")
+            
+            # Fallback: try with different options
+            fallback_opts = ytdl_opts.copy()
+            fallback_opts['writeautomaticsub'] = True
+            fallback_opts['writesubtitles'] = False
+            fallback_opts['subtitleslangs'] = ['en']
+            
+            try:
+                ytdl_fallback = yt_dlp.YoutubeDL(fallback_opts)
+                ytdl_fallback.download([your_video])
+            except Exception as e2:
+                print(f"Fallback also failed: {e2}")
+                raise Exception("Unable to download subtitles with any method")
 
         # putting the vtt in the graveyard
         vtt_filename = glob.glob(f"*{video_id}*")
+        
+        if not vtt_filename:
+            raise Exception("No subtitle files found after download")
 
         vtt_current = os.getcwd() + "/" + vtt_filename[0]
         sub_filename = GRAVEYARD +  vtt_filename[0]
