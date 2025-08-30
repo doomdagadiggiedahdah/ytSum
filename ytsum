@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# ytSum Shell Wrapper
+# This script activates the virtual environment and runs the main Python script
+
+# Get the directory where this script is actually located (resolve symlinks)
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+
+# Activate the virtual environment
+source "$SCRIPT_DIR/.venv/bin/activate"
+
+# Run the main Python script with all passed arguments
+python "$SCRIPT_DIR/main.py" "$@"
