@@ -2,3 +2,4 @@ venv/
 vtt_graveyard/
 __pycache__/
 venv/
+config.toml

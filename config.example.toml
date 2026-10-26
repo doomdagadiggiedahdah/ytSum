@@ -1,0 +1,23 @@
+# Copy to config.toml (gitignored) and edit. Anything left out falls back to these defaults.
+# Point YTSUM_CONFIG at a different file if you want it somewhere else.
+
+[llm]
+model = "claude-sonnet-5-5"   # or "claude-opus-5-5" (stronger), "claude-haiku-5-5" (cheaper)
+
+[transcribe]
+# When YouTube captions can't be downloaded (or with --whisper), grab the audio and run whisper on it.
+enabled = true
+language = "en"               # blank = auto-detect
+model = "small"               # any faster-whisper model: tiny, base, small, medium, large-v3, distil-large-v3, or a local path
+
+# "local": run faster-whisper on this machine (needs `uv pip install faster-whisper`)
+backend = "local"
+device = "auto"               # auto | cpu | cuda
+compute_type = "default"      # e.g. int8 (fast on cpu), float16 (gpu)
+
+# "command": run your own command instead. It must write a .vtt to {out}.
+# Placeholders: {audio} {out} {model} {language}. Runs from the ytSum folder.
+# Example, whisper in docker on another box over ssh:
+# backend = "command"
+# command = "transcribers/ssh_docker.sh me@gpu-box my-whisper-image {model} {audio} {out} {language}"
+command = ""

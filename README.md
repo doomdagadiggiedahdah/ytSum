@@ -3,7 +3,7 @@
 Get summaries of your favorite YouTube videos and import them directly to your Obsidian vault!
 
 ## Usage
-0. Save your OpenAI API key to your environment as `OPENAI_API_KEY`
+0. Save your Anthropic API key to your environment as `PERSONAL_ANTHROPIC_API_KEY` (falls back to `ANTHROPIC_API_KEY` if that isn't set)
 1. Simply open your terminal (Ctrl + Alt + T)
 2. Activate the `venv`
 3. Run the command `python main.py your_youtube_link`
@@ -16,6 +16,15 @@ Get summaries of your favorite YouTube videos and import them directly to your O
 - You'll need to update the following variables in `main.py` before running the script:
   - `GRAVEYARD`: if you want to keep the vtt files from your videos, this is where they'll be saved
   - `OBS_ZK`: This is the location that you'll deposit your summaries in Obsidian
+
+### Config + whisper fallback
+Copy `config.example.toml` to `config.toml` (gitignored) to pick the Claude model and how transcription works.
+When YouTube won't hand over captions (e.g. `HTTP Error 429`), ytSum downloads the audio and runs whisper on it instead.
+Pass `--whisper` to skip captions entirely.
+- `backend = "local"`: faster-whisper on this machine (`uv pip install faster-whisper`), any model name you like
+- `backend = "command"`: run your own transcriber; it gets `{audio}` and must write a `.vtt` to `{out}`. Two ready-made ones live in `transcribers/`:
+  - `ssh_docker.sh`: whisper in a docker image on another machine over ssh
+  - `gpuq_vtt.py`: send it to a [gpu-queued](../gpu-queued) daemon
 
 ### Optional: Add to PATH for global access
 To run `ytsum` from anywhere on your system:

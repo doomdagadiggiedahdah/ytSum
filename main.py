@@ -1,19 +1,51 @@
 import os
+import sys
 import yt_dlp
 import webvtt
 import glob
-from openai import OpenAI
+import anthropic
 import tiktoken
 import argparse
 import subprocess as s
+import shlex
+import shutil
+import tempfile
+import tomllib
 from urllib.parse import urlparse, parse_qs
 
 
-client = OpenAI()
 CURR_DIR = '/home/mat/Documents/ProgramExperiments/ytSum/'
 GRAVEYARD = "/home/mat/Documents/ProgramExperiments/ytSum/vtt_graveyard/"
 OBS_ZK = '/home/mat/Obsidian/ZettleKasten/'
-MODEL = "gpt-4.1-nano"
+
+
+# defaults, overridden by config.toml (see config.example.toml)
+DEFAULT_CONFIG = {
+    "llm": {"model": "claude-sonnet-5-5"},
+    "transcribe": {
+        "enabled": True,
+        "language": "en",
+        "model": "small",
+        "backend": "local",
+        "device": "auto",
+        "compute_type": "default",
+        "command": "",
+    },
+}
+
+
+def load_config():
+    config = {section: dict(values) for section, values in DEFAULT_CONFIG.items()}
+    path = os.environ.get("YTSUM_CONFIG", CURR_DIR + "config.toml")
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            for section, values in tomllib.load(f).items():
+                config.setdefault(section, {}).update(values)
+    return config
+
+
+CONFIG = load_config()
+MODEL = CONFIG["llm"]["model"]
 #ENCODING = tiktoken.encoding_for_model("gpt-4") # this is out for now
 
 
@@ -21,7 +53,49 @@ MODEL = "gpt-4.1-nano"
 short_video = 'https://www.youtube.com/watch?v=jjb77v3LX_s'
 
 
-def get_sub(your_video):
+def transcribe_audio(your_video, video_id):
+    ## fallback for when captions are missing/blocked: download the audio and run whisper on it
+    cfg = CONFIG["transcribe"]
+    print(f"transcribing audio with whisper ({cfg['backend']} backend), this can take a while...")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        audio_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'noprogress': True,
+            'format': 'ba[abr<=80]/ba',  # speech doesn't need more, keeps the transfer small
+            'outtmpl': os.path.join(tmp, '%(id)s.%(ext)s'),
+        }
+        yt_dlp.YoutubeDL(audio_opts).download([your_video])
+        audio = glob.glob(os.path.join(tmp, f"{video_id}.*"))[0]
+        out = os.path.join(tmp, f"{video_id}.whisper.vtt")
+
+        if cfg["backend"] == "command":
+            placeholders = {"audio": audio, "out": out, "model": cfg["model"], "language": cfg["language"]}
+            cmd = cfg["command"]
+            for key, value in placeholders.items():
+                cmd = cmd.replace("{" + key + "}", shlex.quote(value))
+            s.run(cmd, shell=True, check=True, cwd=CURR_DIR)
+        elif cfg["backend"] == "local":
+            try:
+                from whisper_vtt import transcribe
+                transcribe(audio, out, cfg["model"], cfg["device"], cfg["compute_type"], cfg["language"])
+            except ImportError:
+                sys.exit("faster-whisper isn't installed. Run `uv pip install faster-whisper`, or set a different backend in config.toml.")
+        else:
+            sys.exit(f"Unknown transcribe backend '{cfg['backend']}' in config.toml (use 'local' or 'command').")
+
+        if not os.path.exists(out):
+            raise Exception(f"Transcriber finished but didn't write {out}")
+
+        # only lands in the graveyard once it's complete, so a failed run never gets cached
+        sub_filename = GRAVEYARD + os.path.basename(out)
+        shutil.move(out, sub_filename)
+
+    return sub_filename
+
+
+def get_sub(your_video, force_whisper=False):
     global video_title, transcript, video_id
 
     # This is for vtt ID'ing and moving around basically
@@ -50,38 +124,30 @@ def get_sub(your_video):
 
     else:
         print("new video")
-        print("downloading video....")
+        sub_filename = None
 
         # dl vtt
-        try:
-            ytdl = yt_dlp.YoutubeDL(ytdl_opts)
-            ytdl.download([your_video])
-        except Exception as e:
-            print(f"Error downloading subtitles: {e}")
-            print("Trying alternative approach...")
-            
-            # Fallback: try with different options
-            fallback_opts = ytdl_opts.copy()
-            fallback_opts['writeautomaticsub'] = True
-            fallback_opts['writesubtitles'] = False
-            fallback_opts['subtitleslangs'] = ['en']
-            
+        if not force_whisper:
+            print("downloading captions....")
             try:
-                ytdl_fallback = yt_dlp.YoutubeDL(fallback_opts)
-                ytdl_fallback.download([your_video])
-            except Exception as e2:
-                print(f"Fallback also failed: {e2}")
-                raise Exception("Unable to download subtitles with any method")
+                ytdl = yt_dlp.YoutubeDL(ytdl_opts)
+                ytdl.download([your_video])
 
-        # putting the vtt in the graveyard
-        vtt_filename = glob.glob(f"*{video_id}*")
-        
-        if not vtt_filename:
-            raise Exception("No subtitle files found after download")
+                # putting the vtt in the graveyard
+                vtt_filename = glob.glob(f"*{video_id}*.vtt")
+                if vtt_filename:
+                    vtt_current = os.getcwd() + "/" + vtt_filename[0]
+                    sub_filename = GRAVEYARD +  vtt_filename[0]
+                    os.rename(vtt_current, sub_filename)
+                else:
+                    print("No captions found for this video")
+            except Exception as e:
+                print(f"Couldn't download captions: {e}")
 
-        vtt_current = os.getcwd() + "/" + vtt_filename[0]
-        sub_filename = GRAVEYARD +  vtt_filename[0]
-        os.rename(vtt_current, sub_filename)
+        if sub_filename is None:
+            if not CONFIG["transcribe"]["enabled"]:
+                raise Exception("No captions, and whisper transcription is disabled in config.toml")
+            sub_filename = transcribe_audio(your_video, video_id)
 
 
     # This is just getting video title, to name the obsidian note later
@@ -173,14 +239,37 @@ def text_from_AI(text):
         Thank you!
         """
 
-    # try:
-    send = client.chat.completions.create(model = MODEL,
-    messages=[
-        {"role": "system", "content": prompt},
-        {"role": "user", "content": text}
-        ])
+    # read the key from the environment, personal key first, bail out early if neither is set
+    api_key = os.environ.get("PERSONAL_ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        sys.exit("Neither PERSONAL_ANTHROPIC_API_KEY nor ANTHROPIC_API_KEY is set. Export one and run again.")
 
-    res = send.choices[0].message.content
+    client = anthropic.Anthropic(api_key=api_key)
+
+    # streaming so long transcripts / long summaries don't hit HTTP timeouts
+    try:
+        with client.messages.stream(model = MODEL,
+        max_tokens=64000,
+        system=prompt,
+        messages=[
+            {"role": "user", "content": text}
+            ]) as stream:
+            send = stream.get_final_message()
+    except anthropic.AuthenticationError:
+        sys.exit("Anthropic rejected the API key (check PERSONAL_ANTHROPIC_API_KEY / ANTHROPIC_API_KEY).")
+    except anthropic.RateLimitError as e:
+        sys.exit(f"Anthropic rate limit / quota error: {e.message}")
+    except anthropic.APIStatusError as e:
+        sys.exit(f"Anthropic API error ({e.status_code}): {e.message}")
+    except anthropic.APIConnectionError:
+        sys.exit("Network error talking to the Anthropic API.")
+
+    if send.stop_reason == "refusal":
+        sys.exit("The model declined to respond to this transcript.")
+    if send.stop_reason == "max_tokens":
+        print("warning: response hit max_tokens and may be cut off")
+
+    res = "".join(block.text for block in send.content if block.type == "text")
 
     return str(res)
 
@@ -245,9 +334,14 @@ def main(URL=None, question=None):
     if URL:
         print(f"Working on your video: {URL}")
         video_url = URL
-        get_sub(URL)
+        get_sub(URL, force_whisper=args.whisper)
         #token_and_write()
-        write_to_file(text_from_AI(transcript))
+        summary = text_from_AI(transcript)
+        if args.save_obs:
+            write_to_file(summary)
+        else:
+            # default: just print it, nothing goes to Obsidian
+            print(summary + f"\n\nSource: {args.URL}")
     else:
         print("No argument passed.")
 
@@ -255,6 +349,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some video URLs.')
     parser.add_argument('URL', type=str, nargs='?', help='The URL of the video to process')
     parser.add_argument('--question', type=str, default=None,  help='The URL of the video to process')
+    parser.add_argument('--save-obs', action='store_true', help='Save the summary as a note in Obsidian (default: only print it)')
+    parser.add_argument('--whisper', action='store_true', help='Skip YouTube captions and transcribe the audio with whisper (see config.toml)')
 
     args = parser.parse_args()
     main(args.URL, args.question)
